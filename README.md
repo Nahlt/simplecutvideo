@@ -89,16 +89,16 @@ tools/build.ps1   build portabile (usata da build.bat e da GitHub Actions)
 tests/
 ```
 
-   Copyright (C) 2026 Marco Mojoli
+## Note
+
+- **Primo avvio e SmartScreen**: l'eseguibile non ha una firma digitale, quindi Windows può mostrare "Windows ha protetto il PC". Clicca su *Ulteriori informazioni → Esegui comunque*. Sui PC aziendali le policy potrebbero richiedere l'autorizzazione dell'IT.
+- **Dimensione**: la cartella portabile occupa circa 350–450 MB, lo zip circa 150–200 MB. La parte più pesante è FFmpeg.
+- **Licenze**: vedi `THIRD_PARTY_NOTICES.txt`. FFmpeg incluso è in versione GPL e Qt/PySide6 è LGPL. Per uso personale o interno non ci sono vincoli particolari.
+
+   Copyright (C) 2026 Nahlt
 
    Questo programma è software libero: puoi ridistribuirlo e/o modificarlo
    secondo i termini della GNU General Public License come pubblicata dalla
    Free Software Foundation, versione 3 della licenza.
    Questo programma è distribuito nella speranza che sia utile, ma SENZA
    ALCUNA GARANZIA. Vedi il file LICENSE per i dettagli.
-
-## Note
-
-- **Primo avvio e SmartScreen**: l'eseguibile non ha una firma digitale, quindi Windows può mostrare "Windows ha protetto il PC". Clicca su *Ulteriori informazioni → Esegui comunque*. Sui PC aziendali le policy potrebbero richiedere l'autorizzazione dell'IT.
-- **Dimensione**: la cartella portabile occupa circa 350–450 MB, lo zip circa 150–200 MB. La parte più pesante è FFmpeg.
-- **Licenze**: vedi `THIRD_PARTY_NOTICES.txt`. FFmpeg incluso è in versione GPL e Qt/PySide6 è LGPL. Per uso personale o interno non ci sono vincoli particolari.
