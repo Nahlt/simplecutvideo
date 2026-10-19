@@ -25,37 +25,6 @@ Funziona in versione **portabile**: si scompatta lo zip in una cartella qualsias
 - **Lingue**: italiano, inglese, francese, spagnolo e tedesco, selezionabili dal menu *Lingua*. Al primo avvio viene usata la lingua di Windows.
 - **Impostazioni** (lingua, volume, ultime scelte di esportazione) salvate in `SimpleCutVideo.ini` accanto all'eseguibile. Se la cartella è in sola lettura vengono salvate in `%APPDATA%\SimpleCutVideo`.
 
-## Come ottenere l'eseguibile
-
-L'eseguibile Windows va creato su Windows. Le strade sono due.
-
-### A. GitHub Actions (consigliata: non serve installare nulla)
-
-1. Su GitHub crea un repository **privato**, ad esempio `simplecutvideo`.
-2. Carica tutti i file di questa cartella. Il modo più semplice è *Add file → Upload files* trascinando il contenuto dello zip, **compresa la cartella `.github`**. Se Esplora risorse la nasconde, abilita la visualizzazione dei file nascosti.
-3. Il caricamento sul ramo `main` avvia la compilazione. Apri la scheda **Actions → Build Windows** e attendi circa 10–15 minuti. L'esecuzione lancia anche i test automatici su Windows.
-4. In fondo alla pagina dell'esecuzione, nella sezione **Artifacts**, scarica `SimpleCutVideo-win64`.
-5. Per una versione "ufficiale", crea un tag `v1.0.0` (*Releases → Draft a new release*). Lo zip viene allegato automaticamente alla Release.
-
-Puoi rilanciare la compilazione in qualsiasi momento da *Actions → Build Windows → Run workflow*.
-
-### B. Sul tuo PC con `build.bat`
-
-Requisiti: Python 3.12 o 3.13 da [python.org](https://www.python.org/downloads/), con l'opzione *Add python.exe to PATH* spuntata, e una connessione Internet.
-
-1. Scompatta il progetto in una cartella.
-2. Fai doppio clic su `build.bat`.
-
-Lo script esegue questi passi:
-- crea un ambiente Python dedicato (`.venv-build`);
-- scarica le dipendenze e FFmpeg;
-- esegue i test;
-- compila con PyInstaller.
-
-Il risultato è in `dist\SimpleCutVideo\` (cartella portabile) e in `dist\SimpleCutVideo-1.0.0-win64.zip`.
-
-Opzioni: `build.bat -SkipTests` salta i test.
-
 ## Avvio da sorgente (sviluppo)
 
 ```bat
