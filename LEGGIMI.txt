@@ -1,0 +1,35 @@
+SimpleCutVideo - versione portabile per Windows 10/11
+=====================================================
+
+AVVIO
+  Fai doppio clic su SimpleCutVideo.exe. Non serve installare nulla.
+  La cartella "ffmpeg" e la cartella "_internal" devono restare accanto all'eseguibile.
+
+  Al primo avvio Windows potrebbe mostrare "Windows ha protetto il PC":
+  clicca su "Ulteriori informazioni" e poi su "Esegui comunque".
+
+USO RAPIDO
+  1. Apri un video (Ctrl+O) oppure trascinalo nella finestra.
+  2. Sulla barra "Selezioni" regola inizio e fine trascinando le maniglie bianche,
+     digitando i tempi, oppure con i tasti I (inizio) e O (fine) durante la riproduzione.
+     Con "Nuova selezione" (N) puoi marcare più tratti dello stesso video.
+  3. Premi "Taglia ed esporta" (Ctrl+E): scegli le parti, il formato (MP4 o MP3),
+     la modalità di taglio e la cartella di destinazione.
+
+  Modalità di taglio MP4:
+  - Precisa: taglio esatto al fotogramma, il video viene ricompresso (più lento).
+  - Veloce: nessuna ricompressione (velocissima), ma ogni parte inizia sul
+    fotogramma chiave più vicino: la colonna "Inizio" mostra il punto effettivo (≈).
+
+  Per eliminare un pezzo dal video: selezionalo, spunta solo le parti esterne
+  e attiva "Unisci le parti spuntate in un unico file".
+
+  Elenco completo delle scorciatoie: menu Aiuto > Scorciatoie da tastiera (F1).
+
+IMPOSTAZIONI
+  Lingua, volume e ultime scelte di esportazione sono salvate nel file
+  SimpleCutVideo.ini in questa cartella (oppure in %APPDATA%\SimpleCutVideo
+  se la cartella è in sola lettura). Per ripristinare i valori iniziali basta cancellarlo.
+
+LICENZE
+  Vedi THIRD_PARTY_NOTICES.txt.
