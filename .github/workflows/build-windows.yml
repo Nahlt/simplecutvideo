@@ -1,0 +1,48 @@
+name: Build Windows
+
+# Compila la versione portabile su un server Windows di GitHub.
+# - a ogni push sul ramo main e manualmente (Actions > Build Windows > Run workflow):
+#   il pacchetto si scarica da "Artifacts" in fondo alla pagina dell'esecuzione;
+# - quando si crea un tag v* (es. v1.0.0): viene anche pubblicata una Release con lo zip.
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Test e build
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./tools/build.ps1 -NoVenv
+
+      - name: Pubblica il pacchetto (Artifacts)
+        uses: actions/upload-artifact@v4
+        with:
+          name: SimpleCutVideo-win64
+          path: dist/SimpleCutVideo/
+          retention-days: 30
+
+      - name: Pubblica la Release (solo per i tag v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          generate_release_notes: true
