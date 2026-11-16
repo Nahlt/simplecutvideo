@@ -23,10 +23,11 @@ from PySide6.QtWidgets import (
 from .. import APP_NAME, APP_VERSION
 from ..core.ffmpeg import (
     Capabilities, FFmpegPaths, MediaInfo, ProbeError, detect_capabilities, probe, read_keyframes,
+    subprocess_env,
 )
 from ..core.planner import (
     DEFAULT_MP3_BITRATE, FMT_MP3, FMT_MP4, MODE_FAST, MODE_PRECISE, ExportSettings, human_size,
-    plan_export,
+    needs_temp_dir, plan_export,
 )
 from ..core.segments import SelectionModel, build_pieces
 from ..core.timecode import format_ms
@@ -40,6 +41,8 @@ from .widgets import ClickSlider, TimeEdit
 VIDEO_EXTENSIONS = (
     "mp4", "m4v", "mov", "mkv", "avi", "webm", "ts", "mts", "m2ts", "wmv", "mpg", "mpeg", "3gp",
 )
+AUDIO_EXTENSIONS = ("mp3", "m4a", "aac", "wav", "flac", "ogg", "opus", "wma")
+MEDIA_EXTENSIONS = VIDEO_EXTENSIONS + AUDIO_EXTENSIONS
 
 
 class _Background(QObject):
@@ -148,6 +151,25 @@ class MainWindow(QMainWindow):
         self.preview_error.hide()
         vl.addWidget(self.preview_error)
         self.video_stack.addWidget(video_page)
+        # pagina per i file solo audio (al posto dell'immagine nera del video)
+        audio_page = QWidget()
+        av = QVBoxLayout(audio_page)
+        av.addStretch()
+        note = QLabel("♪")
+        note.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        note.setStyleSheet("color: #4C8DFF; font-size: 72px;")
+        av.addWidget(note)
+        self.audio_title = QLabel()
+        self.audio_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.audio_title.setWordWrap(True)
+        self.audio_title.setStyleSheet("color: #E6E8EB; font-size: 16px; font-weight: 600;")
+        av.addWidget(self.audio_title)
+        self.audio_subtitle = QLabel()
+        self.audio_subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.audio_subtitle.setStyleSheet("color: #9AA0A9; font-size: 13px;")
+        av.addWidget(self.audio_subtitle)
+        av.addStretch()
+        self.video_stack.addWidget(audio_page)
         root.addWidget(self.video_stack, 1)
 
         # --- barra di riproduzione
@@ -405,6 +427,7 @@ class MainWindow(QMainWindow):
         self.list_title.setText(tr("list_title"))
         self.btn_export.setText(tr("btn_export_main"))
         self.preview_error.setText(tr("preview_error"))
+        self.audio_subtitle.setText(tr("audio_only"))
         self._refresh_selection_ui()
         self._update_time_label(self._pos)
         self._update_status_info()
@@ -419,8 +442,9 @@ class MainWindow(QMainWindow):
         if self._exporter is not None:
             return
         start_dir = self.settings.get_str("paths/last_open", str(Path.home()))
-        patterns = " ".join(f"*.{e}" for e in VIDEO_EXTENSIONS)
-        filters = f"{tr('filter_video')} ({patterns});;MP4 (*.mp4);;{tr('filter_all')} (*)"
+        patterns = " ".join(f"*.{e}" for e in MEDIA_EXTENSIONS)
+        filters = (f"{tr('filter_video')} ({patterns});;MP4 (*.mp4);;MP3 (*.mp3);;"
+                   f"{tr('filter_all')} (*)")
         path, _ = QFileDialog.getOpenFileName(self, tr("act_open"), start_dir, filters)
         if path:
             self.open_file(path)
@@ -456,7 +480,8 @@ class MainWindow(QMainWindow):
         self._pos = 0
         self.range_bar.set_position(0)
         self.preview_error.hide()
-        self.video_stack.setCurrentIndex(1)
+        self.audio_title.setText(os.path.basename(path))
+        self.video_stack.setCurrentIndex(2 if info.audio_only else 1)
         self.player.setSource(QUrl.fromLocalFile(path))
         self._start_keyframes(path)
         self._refresh_selection_ui()
@@ -497,7 +522,7 @@ class MainWindow(QMainWindow):
             return None
         path = urls[0].toLocalFile()
         ext = os.path.splitext(path)[1].lower().lstrip(".")
-        return path if ext in VIDEO_EXTENSIONS else None
+        return path if ext in MEDIA_EXTENSIONS else None
 
     def dragEnterEvent(self, event):
         if self._exporter is None and self._dropped_path(event):
@@ -773,6 +798,17 @@ class MainWindow(QMainWindow):
         if info is None:
             self.status_info.setText("" if self.ffmpeg else tr("err_no_ffmpeg_short"))
             return
+        if info.audio_only:
+            parts = [(info.acodec or "?").upper()]
+            if info.a_bitrate:
+                parts.append(f"{round(info.a_bitrate / 1000)} kbps")
+            if info.a_sample_rate:
+                parts.append(f"{info.a_sample_rate / 1000:g} kHz")
+            if info.a_channels:
+                parts.append(f"{info.a_channels} ch")
+            parts.append(human_size(info.size_bytes))
+            self.status_info.setText("   ·   ".join(parts))
+            return
         w, h = info.display_size
         audio = (info.acodec or "").upper() if info.has_audio else tr("no_audio")
         parts = [f"{w}×{h}", f"{info.fps:.2f} fps", f"{info.vcodec.upper()} / {audio}",
@@ -805,6 +841,7 @@ class MainWindow(QMainWindow):
             mp3_bitrate=s.get_int("export/mp3_bitrate", DEFAULT_MP3_BITRATE),
             use_gpu=s.get_bool("export/use_gpu", True),
             merge=s.get_bool("export/merge", False),
+            mp3_copy=s.get_bool("export/mp3_copy", True),
         )
 
     def _save_prefs(self, p: ExportSettings) -> None:
@@ -813,6 +850,7 @@ class MainWindow(QMainWindow):
         self.settings.set("export/mp3_bitrate", p.mp3_bitrate)
         self.settings.set("export/use_gpu", p.use_gpu)
         self.settings.set("export/merge", p.merge)
+        self.settings.set("export/mp3_copy", p.mp3_copy)
 
     def open_export(self) -> None:
         if not self.btn_export.isEnabled() or self.info is None:
@@ -846,7 +884,7 @@ class MainWindow(QMainWindow):
             return
 
         temp_dir = None
-        if settings.fmt == FMT_MP4 and settings.mode == MODE_FAST and settings.merge:
+        if needs_temp_dir(self.info, settings):
             folder = os.path.dirname(outputs[0][0])
             try:
                 temp_dir = tempfile.mkdtemp(prefix=".simplecutvideo_", dir=folder)
@@ -922,8 +960,30 @@ class MainWindow(QMainWindow):
     def _reveal(path: str) -> None:
         if sys.platform.startswith("win"):
             subprocess.Popen(["explorer", "/select,", os.path.normpath(path)])
-        else:
-            QDesktopServices.openUrl(QUrl.fromLocalFile(os.path.dirname(path)))
+            return
+        folder = os.path.dirname(path)
+        env = subprocess_env()
+        # 1) il file manager (Nemo, Nautilus, Caja, Dolphin…) apre la cartella e seleziona il file
+        uri = QUrl.fromLocalFile(path).toString(QUrl.ComponentFormattingOption.FullyEncoded)
+        try:
+            result = subprocess.run(
+                ["dbus-send", "--session", "--print-reply", "--dest=org.freedesktop.FileManager1",
+                 "--type=method_call", "/org/freedesktop/FileManager1",
+                 "org.freedesktop.FileManager1.ShowItems", f"array:string:{uri}", "string:"],
+                env=env, capture_output=True, timeout=5,
+            )
+            if result.returncode == 0:
+                return
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+        # 2) apertura generica della cartella
+        try:
+            subprocess.Popen(["xdg-open", folder], env=env, stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL, start_new_session=True)
+            return
+        except OSError:
+            pass
+        QDesktopServices.openUrl(QUrl.fromLocalFile(folder))
 
     # ================================================================ aiuto
     def show_shortcuts(self) -> None:

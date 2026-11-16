@@ -9,7 +9,9 @@ AVVIO
   clicca su "Ulteriori informazioni" e poi su "Esegui comunque".
 
 USO RAPIDO
-  1. Apri un video (Ctrl+O) oppure trascinalo nella finestra.
+  1. Apri un video o un file audio (Ctrl+O) oppure trascinalo nella finestra.
+     File audio supportati: MP3, M4A, AAC, WAV, FLAC, OGG, Opus, WMA
+     (per questi l'esportazione è solo in MP3).
   2. Sulla barra "Selezioni" regola inizio e fine trascinando le maniglie bianche,
      digitando i tempi, oppure con i tasti I (inizio) e O (fine) durante la riproduzione.
      Con "Nuova selezione" (N) puoi marcare più tratti dello stesso video.
@@ -20,6 +22,9 @@ USO RAPIDO
   - Precisa: taglio esatto al fotogramma, il video viene ricompresso (più lento).
   - Veloce: nessuna ricompressione (velocissima), ma ogni parte inizia sul
     fotogramma chiave più vicino: la colonna "Inizio" mostra il punto effettivo (≈).
+
+  Esportazione MP3 da un file MP3: con "Senza ricompressione" (attiva di default)
+  l'audio viene copiato così com'è, senza perdita di qualità.
 
   Per eliminare un pezzo dal video: selezionalo, spunta solo le parti esterne
   e attiva "Unisci le parti spuntate in un unico file".

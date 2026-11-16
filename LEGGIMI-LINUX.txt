@@ -1,0 +1,50 @@
+SimpleCutVideo - versione portabile per Linux (Linux Mint 21/22, Ubuntu 22.04+)
+==============================================================================
+
+AVVIO (AppImage)
+  1. Tasto destro sul file SimpleCutVideo-x.y.z-x86_64.AppImage > Proprietà > Permessi
+     > spunta "Consenti l'esecuzione del file come programma"
+     (oppure da terminale: chmod +x SimpleCutVideo-*.AppImage).
+  2. Doppio clic per avviarlo. Non serve installare nulla: FFmpeg è incluso.
+
+  Se l'AppImage non parte:
+  - su Linux Mint 22 / Ubuntu 24.04:  sudo apt install libfuse2t64
+  - su Linux Mint 21 / Ubuntu 22.04:  sudo apt install libfuse2
+  - se manca il plugin grafico di Qt:  sudo apt install libxcb-cursor0
+  In alternativa usa l'archivio .tar.gz (non richiede FUSE): estrailo e avvia ./SimpleCutVideo
+
+MENU E "APRI CON"
+  Per aggiungere SimpleCutVideo al menu delle applicazioni e al menu "Apri con"
+  dei file video in Nemo, esegui una volta da terminale:
+      ./SimpleCutVideo-x.y.z-x86_64.AppImage --install-desktop
+  Per togliere la voce:  --uninstall-desktop
+  Se sposti l'AppImage in un'altra cartella, ripeti --install-desktop.
+
+USO RAPIDO
+  1. Apri un video o un file audio (Ctrl+O) oppure trascinalo nella finestra.
+     File audio supportati: MP3, M4A, AAC, WAV, FLAC, OGG, Opus, WMA
+     (per questi l'esportazione è solo in MP3; da un MP3, con "Senza ricompressione",
+     l'audio viene copiato così com'è, senza perdita di qualità).
+  2. Sulla barra "Selezioni" regola inizio e fine trascinando le maniglie bianche,
+     digitando i tempi, oppure con i tasti I (inizio) e O (fine) durante la riproduzione.
+     Con "Nuova selezione" (N) puoi marcare più tratti dello stesso video.
+  3. Premi "Taglia ed esporta" (Ctrl+E): scegli le parti, il formato (MP4 o MP3),
+     la modalità di taglio e la cartella di destinazione.
+
+  Modalità di taglio MP4:
+  - Precisa: taglio esatto al fotogramma, il video viene ricompresso (più lento).
+    Usa la scheda grafica se disponibile: NVIDIA (driver proprietario) oppure
+    Intel/AMD tramite VA-API (driver Mesa o intel-media-va-driver).
+  - Veloce: nessuna ricompressione (velocissima), ma ogni parte inizia sul
+    fotogramma chiave più vicino: la colonna "Inizio" mostra il punto effettivo (≈).
+
+  Elenco completo delle scorciatoie: menu Aiuto > Scorciatoie da tastiera (F1).
+
+IMPOSTAZIONI
+  Lingua, volume e ultime scelte di esportazione sono salvate in
+  ~/.config/SimpleCutVideo/SimpleCutVideo.ini. Per ripristinare i valori iniziali
+  basta cancellarlo. Per una versione completamente portabile (es. su chiavetta USB)
+  crea un file vuoto SimpleCutVideo.ini accanto all'AppImage: verrà usato quello.
+
+LICENZE
+  SimpleCutVideo: GNU GPL v3. Componenti di terze parti: vedi THIRD_PARTY_NOTICES.txt.

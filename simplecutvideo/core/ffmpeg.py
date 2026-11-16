@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import glob
 import json
 import os
 import shutil
@@ -21,20 +22,53 @@ HDR_TRANSFERS = {"smpte2084", "arib-std-b67"}
 # Codec più efficienti di H.264: in ricodifica serve più bitrate per pari qualità
 EFFICIENT_CODECS = {"hevc", "vp9", "av1"}
 
-HW_ENCODERS = [
-    # (nome encoder, pixel format, descrizione)
-    ("h264_nvenc", "yuv420p", "NVIDIA NVENC"),
-    ("h264_qsv", "nv12", "Intel Quick Sync"),
-    ("h264_amf", "nv12", "AMD AMF"),
-]
+# (nome encoder, pixel format, descrizione), in ordine di preferenza
+if IS_WINDOWS:
+    HW_ENCODERS = [
+        ("h264_nvenc", "yuv420p", "NVIDIA NVENC"),
+        ("h264_qsv", "nv12", "Intel Quick Sync"),
+        ("h264_amf", "nv12", "AMD AMF"),
+    ]
+else:
+    # Su Linux AMF non esiste: le schede Intel e AMD si usano tramite VA-API
+    HW_ENCODERS = [
+        ("h264_nvenc", "yuv420p", "NVIDIA NVENC"),
+        ("h264_vaapi", "vaapi", "VA-API (Intel/AMD)"),
+        ("h264_qsv", "nv12", "Intel Quick Sync"),
+    ]
 SW_ENCODER = ("libx264", "yuv420p", "CPU (x264)")
+VAAPI_UPLOAD = "format=nv12,hwupload"
+
+
+def vaapi_device() -> str | None:
+    """Primo dispositivo di rendering DRM (es. /dev/dri/renderD128), se presente."""
+    devices = sorted(glob.glob("/dev/dri/renderD*"))
+    return devices[0] if devices else None
+
+
+def subprocess_env() -> dict[str, str]:
+    """Ambiente pulito per i programmi esterni (xdg-open, dbus-send, ffmpeg).
+
+    Il pacchetto PyInstaller può impostare LD_LIBRARY_PATH sulle proprie
+    librerie: i programmi di sistema lanciati da qui devono invece usare
+    quelle del sistema, altrimenti possono non partire.
+    """
+    env = dict(os.environ)
+    if IS_WINDOWS:
+        return env
+    original = env.pop("LD_LIBRARY_PATH_ORIG", None)
+    if original is not None:
+        env["LD_LIBRARY_PATH"] = original
+    elif getattr(sys, "frozen", False):
+        env.pop("LD_LIBRARY_PATH", None)
+    return env
 
 
 def _no_window_kwargs() -> dict:
     """Evita la comparsa di finestre console su Windows."""
     if IS_WINDOWS:
         return {"creationflags": subprocess.CREATE_NO_WINDOW}
-    return {}
+    return {"env": subprocess_env()}
 
 
 def run(args: list[str], timeout: float | None = None) -> subprocess.CompletedProcess:
@@ -53,6 +87,9 @@ def _candidate_dirs() -> list[Path]:
     env = os.environ.get("SIMPLECUTVIDEO_FFMPEG")
     if env:
         dirs.append(Path(env))
+    appdir = os.environ.get("APPDIR")
+    if appdir:  # dentro un'AppImage
+        dirs.append(Path(appdir) / "ffmpeg")
     if getattr(sys, "frozen", False):
         exe_dir = Path(sys.executable).resolve().parent
         dirs.append(exe_dir / "ffmpeg")
@@ -94,7 +131,8 @@ class MediaInfo:
     size_bytes: int
     container: str
     total_bitrate: int          # bit/s
-    # video
+    # video (assente nei file solo audio: has_video False, v_index -1)
+    has_video: bool
     v_index: int                # indice assoluto della traccia video nel file
     vcodec: str
     width: int
@@ -114,11 +152,21 @@ class MediaInfo:
 
     @property
     def frame_ms(self) -> float:
+        """Passo di avanzamento "un fotogramma" (per i file solo audio: 40 ms)."""
         return 1000.0 / self.fps if self.fps > 0 else 40.0
 
     @property
+    def audio_only(self) -> bool:
+        return not self.has_video
+
+    @property
     def video_copy_ok(self) -> bool:
-        return self.vcodec in MP4_VIDEO_COPY_OK
+        return self.has_video and self.vcodec in MP4_VIDEO_COPY_OK
+
+    @property
+    def mp3_copy_ok(self) -> bool:
+        """L'audio è già MP3: si può tagliare senza ricompressione."""
+        return self.acodec == "mp3"
 
     @property
     def audio_copy_ok(self) -> bool:
@@ -151,7 +199,11 @@ def _int(value, default: int | None = 0) -> int | None:
 
 
 def parse_probe(path: str, data: dict) -> MediaInfo:
-    """Costruisce MediaInfo dall'output JSON di ffprobe."""
+    """Costruisce MediaInfo dall'output JSON di ffprobe.
+
+    Accetta file con video (e audio facoltativo) oppure file solo audio
+    (es. MP3, anche con copertina incorporata, che non conta come video).
+    """
     fmt = data.get("format", {})
     streams = data.get("streams", [])
     video = next(
@@ -162,11 +214,12 @@ def parse_probe(path: str, data: dict) -> MediaInfo:
         ),
         None,
     )
-    if video is None:
-        raise ProbeError("no_video")
     audio = next((s for s in streams if s.get("codec_type") == "audio"), None)
+    if video is None and audio is None:
+        raise ProbeError("no_video")
+    main = video if video is not None else audio
 
-    duration_s = _parse_rate(fmt.get("duration")) or _parse_rate(video.get("duration"))
+    duration_s = _parse_rate(fmt.get("duration")) or _parse_rate(main.get("duration"))
     if duration_s <= 0:
         raise ProbeError("no_duration")
     duration_ms = int(round(duration_s * 1000))
@@ -180,6 +233,26 @@ def parse_probe(path: str, data: dict) -> MediaInfo:
     total_bitrate = _int(fmt.get("bit_rate"), 0) or (int(size * 8 / duration_s) if size else 0)
 
     a_bitrate = _int(audio.get("bit_rate"), None) if audio else None
+    if audio is not None and video is None and not a_bitrate and total_bitrate:
+        a_bitrate = total_bitrate   # file solo audio: il bitrate complessivo è quello dell'audio
+
+    audio_fields = dict(
+        has_audio=audio is not None,
+        a_index=_int(audio.get("index"), None) if audio else None,
+        acodec=audio.get("codec_name") if audio else None,
+        a_bitrate=a_bitrate,
+        a_channels=_int(audio.get("channels"), None) if audio else None,
+        a_sample_rate=_int(audio.get("sample_rate"), None) if audio else None,
+    )
+    common = dict(path=path, duration_ms=duration_ms, size_bytes=size,
+                  container=fmt.get("format_name", ""), total_bitrate=total_bitrate)
+
+    if video is None:
+        return MediaInfo(
+            **common, has_video=False, v_index=-1, vcodec="", width=0, height=0, fps=0.0,
+            v_bitrate=0, pix_fmt="", is_hdr=False, rotation=0, **audio_fields,
+        )
+
     v_bitrate = _int(video.get("bit_rate"), 0) or 0
     if not v_bitrate and total_bitrate:
         v_bitrate = max(total_bitrate - (a_bitrate or (128_000 if audio else 0)), 100_000)
@@ -199,11 +272,8 @@ def parse_probe(path: str, data: dict) -> MediaInfo:
         rotation = (_int(video.get("tags", {}).get("rotate"), 0) or 0) % 360
 
     return MediaInfo(
-        path=path,
-        duration_ms=duration_ms,
-        size_bytes=size,
-        container=fmt.get("format_name", ""),
-        total_bitrate=total_bitrate,
+        **common,
+        has_video=True,
         v_index=_int(video.get("index"), 0) or 0,
         vcodec=video.get("codec_name", "unknown"),
         width=_int(video.get("width"), 0) or 0,
@@ -213,12 +283,7 @@ def parse_probe(path: str, data: dict) -> MediaInfo:
         pix_fmt=video.get("pix_fmt", ""),
         is_hdr=video.get("color_transfer") in HDR_TRANSFERS,
         rotation=rotation,
-        has_audio=audio is not None,
-        a_index=_int(audio.get("index"), None) if audio else None,
-        acodec=audio.get("codec_name") if audio else None,
-        a_bitrate=a_bitrate,
-        a_channels=_int(audio.get("channels"), None) if audio else None,
-        a_sample_rate=_int(audio.get("sample_rate"), None) if audio else None,
+        **audio_fields,
     )
 
 
@@ -272,6 +337,7 @@ class EncoderInfo:
     name: str
     pix_fmt: str
     label: str
+    device: str | None = None   # dispositivo VA-API
 
     @property
     def is_hardware(self) -> bool:
@@ -294,12 +360,16 @@ class Capabilities:
         return self.encoders[-1]
 
 
-def _test_encoder(ffmpeg: str, name: str, pix_fmt: str) -> bool:
-    args = [
-        ffmpeg, "-hide_banner", "-nostdin", "-loglevel", "error",
-        "-f", "lavfi", "-i", "color=c=black:s=320x240:r=25:d=0.2",
-        "-frames:v", "3", "-c:v", name, "-pix_fmt", pix_fmt, "-f", "null", "-",
-    ]
+def _test_encoder(ffmpeg: str, name: str, pix_fmt: str, device: str | None = None) -> bool:
+    args = [ffmpeg, "-hide_banner", "-nostdin", "-loglevel", "error"]
+    if device:
+        args += ["-vaapi_device", device]
+    args += ["-f", "lavfi", "-i", "color=c=black:s=320x240:r=25:d=0.2", "-frames:v", "3"]
+    if device:
+        args += ["-vf", VAAPI_UPLOAD, "-c:v", name]
+    else:
+        args += ["-c:v", name, "-pix_fmt", pix_fmt]
+    args += ["-f", "null", "-"]
     try:
         return run(args, timeout=20).returncode == 0
     except (subprocess.TimeoutExpired, OSError):
@@ -323,8 +393,15 @@ def detect_capabilities(ffmpeg: str) -> Capabilities:
 
     found: list[EncoderInfo] = []
     for name, pix_fmt, label in HW_ENCODERS:
-        if listed(name, encoders_txt) and _test_encoder(ffmpeg, name, pix_fmt):
-            found.append(EncoderInfo(name, pix_fmt, label))
+        if not listed(name, encoders_txt):
+            continue
+        device = None
+        if name == "h264_vaapi":
+            device = vaapi_device()
+            if device is None:
+                continue
+        if _test_encoder(ffmpeg, name, pix_fmt, device):
+            found.append(EncoderInfo(name, pix_fmt, label, device))
     found.append(EncoderInfo(*SW_ENCODER))
     return Capabilities(
         encoders=tuple(found),
