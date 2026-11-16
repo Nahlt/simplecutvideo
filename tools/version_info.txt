@@ -1,8 +1,8 @@
 # Windows file properties for SimpleCutVideo.exe (Explorer > Properties > Details)
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(1, 0, 0, 0),
-    prodvers=(1, 0, 0, 0),
+    filevers=(1, 2, 0, 0),
+    prodvers=(1, 2, 0, 0),
     mask=0x3f,
     flags=0x0,
     OS=0x40004,
@@ -14,12 +14,12 @@ VSVersionInfo(
     StringFileInfo([
       StringTable(
         '041004b0',
-        [StringStruct('FileDescription', 'SimpleCutVideo - taglio di file video'),
-         StringStruct('FileVersion', '1.0.0'),
+        [StringStruct('FileDescription', 'SimpleCutVideo - taglio di file video e audio'),
+         StringStruct('FileVersion', '1.2.0'),
          StringStruct('InternalName', 'SimpleCutVideo'),
          StringStruct('OriginalFilename', 'SimpleCutVideo.exe'),
          StringStruct('ProductName', 'SimpleCutVideo'),
-         StringStruct('ProductVersion', '1.0.0')])
+         StringStruct('ProductVersion', '1.2.0')])
     ]),
     VarFileInfo([VarStruct('Translation', [0x0410, 1200])])
   ]

@@ -7,9 +7,9 @@ import shutil
 from collections import deque
 from typing import Callable
 
-from PySide6.QtCore import QObject, QProcess, Signal
+from PySide6.QtCore import QObject, QProcess, QProcessEnvironment, Signal
 
-from .core.ffmpeg import EncoderInfo
+from .core.ffmpeg import EncoderInfo, subprocess_env
 from .core.planner import Job
 
 
@@ -94,6 +94,10 @@ class Exporter(QObject):
         proc = QProcess(self)
         proc.setProgram(step.args[0])
         proc.setArguments(step.args[1:])
+        env = QProcessEnvironment()
+        for key, value in subprocess_env().items():
+            env.insert(key, value)
+        proc.setProcessEnvironment(env)
         proc.readyReadStandardOutput.connect(self._on_stdout)
         proc.readyReadStandardError.connect(self._on_stderr)
         proc.finished.connect(self._on_finished)

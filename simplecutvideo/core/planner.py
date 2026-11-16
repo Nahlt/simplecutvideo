@@ -6,7 +6,7 @@ import bisect
 import os
 from dataclasses import dataclass, field
 
-from .ffmpeg import EFFICIENT_CODECS, EncoderInfo, MediaInfo
+from .ffmpeg import EFFICIENT_CODECS, VAAPI_UPLOAD, EncoderInfo, MediaInfo
 from .segments import Piece
 from .timecode import format_seconds
 
@@ -33,6 +33,20 @@ class ExportSettings:
     mp3_bitrate: int = DEFAULT_MP3_BITRATE
     use_gpu: bool = True
     merge: bool = False
+    mp3_copy: bool = True   # sorgente già MP3: taglio senza ricompressione
+
+
+def uses_mp3_copy(info: MediaInfo, settings: ExportSettings) -> bool:
+    return settings.fmt == FMT_MP3 and settings.mp3_copy and info.mp3_copy_ok
+
+
+def needs_temp_dir(info: MediaInfo, settings: ExportSettings) -> bool:
+    """Unione senza ricodifica: servono file temporanei per le singole parti."""
+    if not settings.merge:
+        return False
+    if settings.fmt == FMT_MP4:
+        return settings.mode == MODE_FAST
+    return uses_mp3_copy(info, settings)
 
 
 @dataclass
@@ -83,9 +97,17 @@ def _video_codec_args(info: MediaInfo, encoder: EncoderInfo) -> list[str]:
         codec = ["-c:v", "h264_qsv", "-preset", "medium"]
     elif encoder.name == "h264_amf":
         codec = ["-c:v", "h264_amf", "-quality", "balanced", "-rc", "vbr_peak"]
+    elif encoder.name == "h264_vaapi":
+        # i fotogrammi sono già in memoria video (filtro hwupload): niente -pix_fmt
+        return ["-c:v", "h264_vaapi", "-rc_mode", "VBR"] + common
     else:
         codec = ["-c:v", encoder.name]
     return codec + common + ["-pix_fmt", encoder.pix_fmt]
+
+
+def _join_filters(*parts: str | None) -> str | None:
+    chain = ",".join(p for p in parts if p)
+    return chain or None
 
 
 def _hdr_args(info: MediaInfo, has_tonemap: bool) -> tuple[str | None, list[str]]:
@@ -124,6 +146,9 @@ def _precise_mp4(ffmpeg: str, info: MediaInfo, pieces: list[Piece], output: str,
                  encoder: EncoderInfo, has_tonemap: bool) -> list[str]:
     vfilter, color_tags = _hdr_args(info, has_tonemap)
     args = [ffmpeg, *_head()]
+    if encoder.name == "h264_vaapi" and encoder.device:
+        args += ["-vaapi_device", encoder.device]
+        vfilter = _join_filters(vfilter, VAAPI_UPLOAD)
     for piece in pieces:
         args += _input_args(info, piece)
 
@@ -227,6 +252,35 @@ def _mp3(ffmpeg: str, info: MediaInfo, pieces: list[Piece], output: str, kbps: i
     return args + _tail(output, mp4=False)
 
 
+def _mp3_copy(ffmpeg: str, info: MediaInfo, piece: Piece, output: str) -> list[str]:
+    """Taglio di un MP3 senza ricompressione (precisione: un frame MP3, ~26 ms)."""
+    args = [ffmpeg, *_head(), *_input_args(info, piece), "-map", f"0:{info.a_index}",
+            "-c:a", "copy", "-id3v2_version", "3"]
+    return args + _tail(output, mp4=False)
+
+
+def _concat_job(ffmpeg: str, out_path: str, pieces: list[Piece], temp_dir: str | None,
+                ext: str, make_args) -> Job:
+    """Parti tagliate senza ricodifica in file temporanei, poi unite (concat demuxer)."""
+    if temp_dir is None:
+        raise ValueError("temp_dir richiesto per unire parti senza ricodifica")
+    total = sum(p.length for p in pieces)
+    stem = os.path.splitext(os.path.basename(out_path))[0]
+    temps = [os.path.join(temp_dir, f"{stem}_part{i:02d}.{ext}") for i in range(len(pieces))]
+    steps = [Step(make_args(p, t), p.length, t) for p, t in zip(pieces, temps)]
+    list_path = os.path.join(temp_dir, f"{stem}_list.txt")
+    concat = [
+        ffmpeg, *_head(), "-f", "concat", "-safe", "0", "-i", list_path,
+        "-map", "0", "-c", "copy",
+    ]
+    if ext == FMT_MP3:
+        concat += ["-id3v2_version", "3"]
+    concat += _tail(out_path, mp4=ext == FMT_MP4)
+    steps.append(Step(concat, max(total // 10, 1), out_path))
+    return Job(out_path, pieces, steps, temp_files=temps + [list_path],
+               prepare_files={list_path: _concat_list(temps)})
+
+
 # ------------------------------------------------------------ pianificazione
 def plan_export(
     ffmpeg: str,
@@ -247,7 +301,16 @@ def plan_export(
     jobs: list[Job] = []
     for out_path, pieces in outputs:
         total = sum(p.length for p in pieces)
-        if settings.fmt == FMT_MP3:
+        if settings.fmt == FMT_MP3 and uses_mp3_copy(info, settings):
+            if len(pieces) == 1:
+                step = Step(_mp3_copy(ffmpeg, info, pieces[0], out_path), total, out_path)
+                jobs.append(Job(out_path, pieces, [step]))
+            else:
+                jobs.append(_concat_job(
+                    ffmpeg, out_path, pieces, temp_dir, FMT_MP3,
+                    lambda p, t: _mp3_copy(ffmpeg, info, p, t),
+                ))
+        elif settings.fmt == FMT_MP3:
             step = Step(_mp3(ffmpeg, info, pieces, out_path, settings.mp3_bitrate), total, out_path)
             jobs.append(Job(out_path, pieces, [step]))
         elif settings.mode == MODE_PRECISE:
@@ -257,27 +320,10 @@ def plan_export(
             step = Step(_fast_mp4(ffmpeg, info, pieces[0], out_path, keyframes), total, out_path)
             jobs.append(Job(out_path, pieces, [step]))
         else:
-            if temp_dir is None:
-                raise ValueError("temp_dir richiesto per unire parti in modalità veloce")
-            stem = os.path.splitext(os.path.basename(out_path))[0]
-            temps = [os.path.join(temp_dir, f"{stem}_part{i:02d}.mp4") for i in range(len(pieces))]
-            steps = [
-                Step(_fast_mp4(ffmpeg, info, p, t, keyframes), p.length, t)
-                for p, t in zip(pieces, temps)
-            ]
-            list_path = os.path.join(temp_dir, f"{stem}_list.txt")
-            concat = [
-                ffmpeg, *_head(), "-f", "concat", "-safe", "0", "-i", list_path,
-                "-map", "0", "-c", "copy", *_tail(out_path),
-            ]
-            steps.append(Step(concat, max(total // 10, 1), out_path))
-            jobs.append(
-                Job(
-                    out_path, pieces, steps,
-                    temp_files=temps + [list_path],
-                    prepare_files={list_path: _concat_list(temps)},
-                )
-            )
+            jobs.append(_concat_job(
+                ffmpeg, out_path, pieces, temp_dir, FMT_MP4,
+                lambda p, t: _fast_mp4(ffmpeg, info, p, t, keyframes),
+            ))
     return jobs
 
 
@@ -285,6 +331,9 @@ def plan_export(
 def estimate_bytes(info: MediaInfo, duration_ms: int, settings: ExportSettings) -> int:
     """Stima della dimensione di un file in output di durata `duration_ms`."""
     seconds = duration_ms / 1000
+    if uses_mp3_copy(info, settings):
+        rate = info.a_bitrate or info.total_bitrate or 128_000
+        return int(rate / 8 * seconds) + 1024
     if settings.fmt == FMT_MP3:
         return int(settings.mp3_bitrate * 1000 / 8 * seconds) + 1024
     if settings.mode == MODE_FAST:

@@ -25,6 +25,11 @@ def _resource(name: str) -> Path:
 
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv if argv is None else argv)
+    from .linux_integration import audio_backend_fallback, handle_cli
+    code = handle_cli(argv[1:])
+    if code is not None:
+        return code
+    audio_backend_fallback()
     if sys.platform.startswith("win"):
         try:  # icona corretta nella barra delle applicazioni
             import ctypes
@@ -34,6 +39,9 @@ def main(argv: list[str] | None = None) -> int:
 
     app = QApplication(argv)
     app.setApplicationName(APP_NAME)
+    if not sys.platform.startswith("win"):
+        # collega la finestra al file .desktop (icona corretta su Wayland e nella barra)
+        app.setDesktopFileName("simplecutvideo")
     app.setApplicationVersion(APP_VERSION)
     icon = _resource("icon.png")
     if icon.exists():
@@ -47,7 +55,10 @@ def main(argv: list[str] | None = None) -> int:
     window = MainWindow(settings, ffmpeg)
     window.show()
     if ffmpeg is None:
-        QMessageBox.critical(window, APP_NAME, tr("err_no_ffmpeg"))
+        message = tr("err_no_ffmpeg")
+        if not sys.platform.startswith("win"):
+            message += "\n\nsudo apt install ffmpeg"
+        QMessageBox.critical(window, APP_NAME, message)
 
     files = [a for a in argv[1:] if os.path.isfile(a)]
     if files:

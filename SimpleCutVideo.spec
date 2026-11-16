@@ -1,7 +1,11 @@
 # -*- mode: python ; coding: utf-8 -*-
 # Configurazione PyInstaller: versione "cartella" (onedir), avvio rapido e
 # meno segnalazioni degli antivirus rispetto all'exe singolo.
-# FFmpeg viene copiato dopo la build da tools/build.ps1 nella sottocartella ffmpeg.
+# FFmpeg viene copiato dopo la build da tools/build.ps1 (Windows) o
+# tools/build_linux.sh (Linux) nella sottocartella ffmpeg.
+import sys
+
+IS_WINDOWS = sys.platform.startswith("win")
 
 a = Analysis(
     ["run.py"],
@@ -23,8 +27,9 @@ exe = EXE(
     exclude_binaries=True,
     name="SimpleCutVideo",
     console=False,
-    icon="simplecutvideo/assets/icon.ico",
-    version="tools/version_info.txt",
+    icon="simplecutvideo/assets/icon.ico" if IS_WINDOWS else None,
+    version="tools/version_info.txt" if IS_WINDOWS else None,
+    strip=not IS_WINDOWS,
     upx=False,
 )
 

@@ -1,0 +1,5 @@
+#!/bin/sh
+# Avvio di SimpleCutVideo dall'AppImage o dalla cartella portabile.
+HERE="$(dirname "$(readlink -f "$0")")"
+export SIMPLECUTVIDEO_FFMPEG="$HERE/ffmpeg"
+exec "$HERE/app/SimpleCutVideo" "$@"

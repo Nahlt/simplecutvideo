@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 from ..core.ffmpeg import Capabilities, MediaInfo
 from ..core.planner import (
     DEFAULT_MP3_BITRATE, FMT_MP3, FMT_MP4, MODE_FAST, MODE_PRECISE, MP3_BITRATES, ExportSettings,
-    estimate_bytes, human_size, snap_start,
+    estimate_bytes, human_size, snap_start, uses_mp3_copy,
 )
 from ..core.segments import Piece, ensure_extension, merged_filename, piece_filename
 from ..core.timecode import format_ms
@@ -43,7 +43,8 @@ class ExportDialog(QDialog):
         self._keyframes_provider = keyframes_provider
         self._keyframes: list[float] | None = None
         self.stem = os.path.splitext(os.path.basename(info.path))[0]
-        self._names = {p.number: piece_filename(self.stem, p, prefs.fmt) for p in pieces}
+        first_fmt = FMT_MP3 if (info.audio_only or prefs.fmt == FMT_MP3) else FMT_MP4
+        self._names = {p.number: piece_filename(self.stem, p, first_fmt) for p in pieces}
         self._updating = False
 
         self.outputs: list[tuple[str, list[Piece]]] = []
@@ -150,6 +151,9 @@ class ExportDialog(QDialog):
         if not self.info.has_audio:
             self.fmt_mp3.setEnabled(False)
             self.fmt_mp3.setToolTip(tr("mp3_no_audio"))
+        if self.info.audio_only:
+            self.fmt_mp4.setEnabled(False)
+            self.fmt_mp4.setToolTip(tr("mp4_no_video"))
         self.fmt_mp4.toggled.connect(self._on_format_changed)
         grid.addWidget(self.fmt_mp4, 0, 0)
         grid.addWidget(self.fmt_mp3, 1, 0)
@@ -191,17 +195,26 @@ class ExportDialog(QDialog):
 
         # --- opzioni MP3
         mp3 = QWidget()
-        h = QHBoxLayout(mp3)
-        h.setContentsMargins(12, 0, 0, 0)
-        h.addWidget(QLabel(tr("mp3_bitrate")))
+        m3 = QVBoxLayout(mp3)
+        m3.setContentsMargins(12, 0, 0, 0)
+        self.mp3_copy = QCheckBox(tr("mp3_copy"))
+        self.mp3_copy.setToolTip(tr("mp3_copy_tip"))
+        self.mp3_copy.toggled.connect(self._refresh)
+        self.mp3_copy.setVisible(self.info.mp3_copy_ok)
+        m3.addWidget(self.mp3_copy)
+        h = QHBoxLayout()
+        self.bitrate_label = QLabel(tr("mp3_bitrate"))
+        h.addWidget(self.bitrate_label)
         self.bitrate = QComboBox()
         for kbps in MP3_BITRATES:
             self.bitrate.addItem(f"{kbps} kbps", kbps)
         self.bitrate.currentIndexChanged.connect(self._refresh)
         h.addWidget(self.bitrate)
-        hint = QLabel(tr("mp3_hint"))
-        hint.setObjectName("hint")
-        h.addWidget(hint, 1)
+        self.mp3_hint = QLabel(tr("mp3_hint"))
+        self.mp3_hint.setObjectName("hint")
+        self.mp3_hint.setWordWrap(True)
+        h.addWidget(self.mp3_hint, 1)
+        m3.addLayout(h)
         self.options.addWidget(mp3)
 
         grid.addWidget(self.options, 0, 1, 2, 1)
@@ -221,12 +234,13 @@ class ExportDialog(QDialog):
     # ------------------------------------------------------------- stato
     def _apply_prefs(self, prefs: ExportSettings) -> None:
         self._updating = True
-        use_mp3 = prefs.fmt == FMT_MP3 and self.info.has_audio
+        use_mp3 = (prefs.fmt == FMT_MP3 or self.info.audio_only) and self.info.has_audio
         (self.fmt_mp3 if use_mp3 else self.fmt_mp4).setChecked(True)
         fast = prefs.mode == MODE_FAST and self.info.video_copy_ok
         (self.mode_fast if fast else self.mode_precise).setChecked(True)
         self.gpu_check.setChecked(prefs.use_gpu)
         self.merge_check.setChecked(prefs.merge)
+        self.mp3_copy.setChecked(prefs.mp3_copy)
         idx = self.bitrate.findData(prefs.mp3_bitrate)
         self.bitrate.setCurrentIndex(idx if idx >= 0 else self.bitrate.findData(DEFAULT_MP3_BITRATE))
         self._updating = False
@@ -239,6 +253,7 @@ class ExportDialog(QDialog):
             mp3_bitrate=int(self.bitrate.currentData() or DEFAULT_MP3_BITRATE),
             use_gpu=self.gpu_check.isChecked(),
             merge=self.merge_check.isChecked(),
+            mp3_copy=self.mp3_copy.isChecked(),
         )
 
     def set_capabilities(self, caps: Capabilities) -> None:
@@ -349,6 +364,11 @@ class ExportDialog(QDialog):
         self.merge_name.setEnabled(merge)
 
         # testo di aiuto sulla modalità
+        if settings.fmt == FMT_MP3:
+            copy = uses_mp3_copy(self.info, settings)
+            self.bitrate.setEnabled(not copy)
+            self.bitrate_label.setEnabled(not copy)
+            self.mp3_hint.setText(tr("mp3_copy_hint") if copy else tr("mp3_hint"))
         if settings.fmt == FMT_MP4:
             if fast:
                 text = tr("mode_fast_help")

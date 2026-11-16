@@ -1,0 +1,17 @@
+[Desktop Entry]
+Type=Application
+Name=SimpleCutVideo
+GenericName=Video and audio cutter
+GenericName[it]=Taglio video e audio
+Comment=Cut video and audio files and export the parts as MP4 or MP3
+Comment[it]=Taglia file video e audio ed esporta le parti in MP4 o MP3
+Comment[fr]=Découpe des fichiers vidéo et audio et exporte les parties en MP4 ou MP3
+Comment[es]=Corta archivos de vídeo y audio y exporta las partes en MP4 o MP3
+Comment[de]=Video- und Audiodateien schneiden und Teile als MP4 oder MP3 exportieren
+Exec=SimpleCutVideo %f
+Icon=simplecutvideo
+Terminal=false
+Categories=AudioVideo;Audio;Video;AudioVideoEditing;
+MimeType=video/mp4;video/x-m4v;video/quicktime;video/x-matroska;video/x-msvideo;video/webm;video/mp2t;video/x-ms-wmv;video/mpeg;video/3gpp;audio/mpeg;audio/mp4;audio/aac;audio/x-wav;audio/flac;audio/ogg;audio/x-vorbis+ogg;audio/x-opus+ogg;audio/x-ms-wma;
+StartupWMClass=SimpleCutVideo
+X-AppImage-Version=@VERSION@

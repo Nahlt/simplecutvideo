@@ -3,18 +3,18 @@
 IT = {
     # menu
     "menu_file": "&File",
-    "act_open": "Apri video…",
+    "act_open": "Apri file…",
     "act_export": "Taglia ed esporta…",
     "act_quit": "Esci",
     "menu_language": "&Lingua",
     "menu_help": "&Aiuto",
     "act_shortcuts": "Scorciatoie da tastiera",
     "act_about": "Informazioni su {app}",
-    "filter_video": "File video",
+    "filter_video": "File video e audio",
     "filter_all": "Tutti i file",
     # lettore
-    "drop_hint": "Trascina qui un file video\noppure",
-    "btn_open": "Apri video…",
+    "drop_hint": "Trascina qui un file video o audio\noppure",
+    "btn_open": "Apri file…",
     "tip_back5": "Indietro di 5 secondi (←)",
     "tip_fwd5": "Avanti di 5 secondi (→)",
     "tip_prev_frame": "Fotogramma precedente (Shift+← o ,)",
@@ -56,7 +56,7 @@ IT = {
                      "Nella versione portabile FFmpeg si trova nella cartella dell'applicazione: "
                      "verifica che lo zip sia stato estratto per intero.",
     "err_no_ffmpeg_short": "FFmpeg non trovato",
-    "err_no_video": "Il file non contiene una traccia video.",
+    "err_no_video": "Il file non contiene né video né audio.",
     "err_no_duration": "Impossibile determinare la durata del file.",
     "err_probe_timeout": "L'analisi del file ha richiesto troppo tempo.",
     "err_open": "Impossibile aprire il file:\n{error}",
@@ -85,6 +85,11 @@ IT = {
     "fmt_mp4": "MP4 – video e audio",
     "fmt_mp3": "MP3 – solo audio",
     "mp3_no_audio": "Il file non contiene audio.",
+    "mp4_no_video": "Il file non contiene video: è disponibile solo l'esportazione MP3.",
+    "mp3_copy": "Senza ricompressione (qualità originale)",
+    "mp3_copy_tip": "L'audio MP3 viene copiato così com'è: nessuna perdita di qualità e taglio preciso a circa 1/40 di secondo.",
+    "mp3_copy_hint": "Dimensione stimata in proporzione al file originale.",
+    "audio_only": "File solo audio",
     "cut_mode": "Modalità di taglio:",
     "mode_precise": "Precisa (ricodifica)",
     "mode_fast": "Veloce (senza ricodifica)",
@@ -151,24 +156,24 @@ IT = {
     "sc_mouse_hint": "Con il mouse: trascina le maniglie bianche per regolare inizio e fine, trascina il "
                      "corpo di una selezione per spostarla, clic su un'area vuota per spostare la "
                      "riproduzione, doppio clic su un'area vuota per creare una nuova selezione.",
-    "about_text": "<b>{app}</b> {version}<br><br>Taglio di file video con selezioni multiple.<br><br>"
+    "about_text": "<b>{app}</b> {version}<br><br>Taglio di file video e audio con selezioni multiple.<br><br>"
                   "Interfaccia: Qt / PySide6 {qt} (LGPL).<br>"
                   "Elaborazione video: FFmpeg (GPL), incluso nel pacchetto.",
 }
 
 EN = {
     "menu_file": "&File",
-    "act_open": "Open video…",
+    "act_open": "Open file…",
     "act_export": "Cut and export…",
     "act_quit": "Quit",
     "menu_language": "&Language",
     "menu_help": "&Help",
     "act_shortcuts": "Keyboard shortcuts",
     "act_about": "About {app}",
-    "filter_video": "Video files",
+    "filter_video": "Video and audio files",
     "filter_all": "All files",
-    "drop_hint": "Drop a video file here\nor",
-    "btn_open": "Open video…",
+    "drop_hint": "Drop a video or audio file here\nor",
+    "btn_open": "Open file…",
     "tip_back5": "Back 5 seconds (←)",
     "tip_fwd5": "Forward 5 seconds (→)",
     "tip_prev_frame": "Previous frame (Shift+← or ,)",
@@ -208,7 +213,7 @@ EN = {
                      "In the portable version FFmpeg is located in the application folder: "
                      "make sure the zip file was fully extracted.",
     "err_no_ffmpeg_short": "FFmpeg not found",
-    "err_no_video": "The file does not contain a video track.",
+    "err_no_video": "The file contains neither video nor audio.",
     "err_no_duration": "Unable to determine the file duration.",
     "err_probe_timeout": "Analysing the file took too long.",
     "err_open": "Unable to open the file:\n{error}",
@@ -236,6 +241,11 @@ EN = {
     "fmt_mp4": "MP4 – video and audio",
     "fmt_mp3": "MP3 – audio only",
     "mp3_no_audio": "The file has no audio.",
+    "mp4_no_video": "The file has no video: only MP3 export is available.",
+    "mp3_copy": "No re-encoding (original quality)",
+    "mp3_copy_tip": "The MP3 audio is copied as is: no quality loss, cuts accurate to about 1/40 of a second.",
+    "mp3_copy_hint": "Estimated size in proportion to the original file.",
+    "audio_only": "Audio-only file",
     "cut_mode": "Cut mode:",
     "mode_precise": "Precise (re-encode)",
     "mode_fast": "Fast (no re-encoding)",
@@ -299,24 +309,24 @@ EN = {
     "sc_mouse_hint": "With the mouse: drag the white handles to adjust start and end, drag the body of a "
                      "selection to move it, click an empty area to move the playback position, "
                      "double-click an empty area to create a new selection.",
-    "about_text": "<b>{app}</b> {version}<br><br>Video cutting with multiple selections.<br><br>"
+    "about_text": "<b>{app}</b> {version}<br><br>Video and audio cutting with multiple selections.<br><br>"
                   "User interface: Qt / PySide6 {qt} (LGPL).<br>"
                   "Video processing: FFmpeg (GPL), bundled with the package.",
 }
 
 FR = {
     "menu_file": "&Fichier",
-    "act_open": "Ouvrir une vidéo…",
+    "act_open": "Ouvrir un fichier…",
     "act_export": "Couper et exporter…",
     "act_quit": "Quitter",
     "menu_language": "&Langue",
     "menu_help": "&Aide",
     "act_shortcuts": "Raccourcis clavier",
     "act_about": "À propos de {app}",
-    "filter_video": "Fichiers vidéo",
+    "filter_video": "Fichiers vidéo et audio",
     "filter_all": "Tous les fichiers",
-    "drop_hint": "Déposez un fichier vidéo ici\nou",
-    "btn_open": "Ouvrir une vidéo…",
+    "drop_hint": "Déposez un fichier vidéo ou audio ici\nou",
+    "btn_open": "Ouvrir un fichier…",
     "tip_back5": "Reculer de 5 secondes (←)",
     "tip_fwd5": "Avancer de 5 secondes (→)",
     "tip_prev_frame": "Image précédente (Maj+← ou ,)",
@@ -356,7 +366,7 @@ FR = {
                      "Dans la version portable, FFmpeg se trouve dans le dossier de l'application : "
                      "vérifiez que le fichier zip a été entièrement extrait.",
     "err_no_ffmpeg_short": "FFmpeg introuvable",
-    "err_no_video": "Le fichier ne contient pas de piste vidéo.",
+    "err_no_video": "Le fichier ne contient ni vidéo ni audio.",
     "err_no_duration": "Impossible de déterminer la durée du fichier.",
     "err_probe_timeout": "L'analyse du fichier a pris trop de temps.",
     "err_open": "Impossible d'ouvrir le fichier :\n{error}",
@@ -384,6 +394,11 @@ FR = {
     "fmt_mp4": "MP4 – vidéo et audio",
     "fmt_mp3": "MP3 – audio uniquement",
     "mp3_no_audio": "Le fichier ne contient pas d'audio.",
+    "mp4_no_video": "Le fichier ne contient pas de vidéo : seul l'export MP3 est disponible.",
+    "mp3_copy": "Sans réencodage (qualité d'origine)",
+    "mp3_copy_tip": "L'audio MP3 est copié tel quel : aucune perte de qualité, découpe précise à environ 1/40 de seconde.",
+    "mp3_copy_hint": "Taille estimée proportionnelle au fichier d'origine.",
+    "audio_only": "Fichier audio uniquement",
     "cut_mode": "Mode de découpe :",
     "mode_precise": "Précis (réencodage)",
     "mode_fast": "Rapide (sans réencodage)",
@@ -447,24 +462,24 @@ FR = {
     "sc_mouse_hint": "À la souris : faites glisser les poignées blanches pour ajuster le début et la fin, "
                      "faites glisser le corps d'une sélection pour la déplacer, cliquez sur une zone vide "
                      "pour déplacer la lecture, double-cliquez sur une zone vide pour créer une sélection.",
-    "about_text": "<b>{app}</b> {version}<br><br>Découpe de fichiers vidéo avec sélections multiples.<br><br>"
+    "about_text": "<b>{app}</b> {version}<br><br>Découpe de fichiers vidéo et audio avec sélections multiples.<br><br>"
                   "Interface : Qt / PySide6 {qt} (LGPL).<br>"
                   "Traitement vidéo : FFmpeg (GPL), inclus dans le paquet.",
 }
 
 ES = {
     "menu_file": "&Archivo",
-    "act_open": "Abrir vídeo…",
+    "act_open": "Abrir archivo…",
     "act_export": "Cortar y exportar…",
     "act_quit": "Salir",
     "menu_language": "&Idioma",
     "menu_help": "A&yuda",
     "act_shortcuts": "Atajos de teclado",
     "act_about": "Acerca de {app}",
-    "filter_video": "Archivos de vídeo",
+    "filter_video": "Archivos de vídeo y audio",
     "filter_all": "Todos los archivos",
-    "drop_hint": "Arrastra aquí un archivo de vídeo\no",
-    "btn_open": "Abrir vídeo…",
+    "drop_hint": "Arrastra aquí un archivo de vídeo o audio\no",
+    "btn_open": "Abrir archivo…",
     "tip_back5": "Retroceder 5 segundos (←)",
     "tip_fwd5": "Avanzar 5 segundos (→)",
     "tip_prev_frame": "Fotograma anterior (Mayús+← o ,)",
@@ -504,7 +519,7 @@ ES = {
                      "En la versión portátil FFmpeg está en la carpeta de la aplicación: "
                      "comprueba que el zip se haya extraído por completo.",
     "err_no_ffmpeg_short": "FFmpeg no encontrado",
-    "err_no_video": "El archivo no contiene una pista de vídeo.",
+    "err_no_video": "El archivo no contiene ni vídeo ni audio.",
     "err_no_duration": "No se puede determinar la duración del archivo.",
     "err_probe_timeout": "El análisis del archivo ha tardado demasiado.",
     "err_open": "No se puede abrir el archivo:\n{error}",
@@ -532,6 +547,11 @@ ES = {
     "fmt_mp4": "MP4 – vídeo y audio",
     "fmt_mp3": "MP3 – solo audio",
     "mp3_no_audio": "El archivo no contiene audio.",
+    "mp4_no_video": "El archivo no contiene vídeo: solo está disponible la exportación a MP3.",
+    "mp3_copy": "Sin recodificar (calidad original)",
+    "mp3_copy_tip": "El audio MP3 se copia tal cual: sin pérdida de calidad y con un corte preciso de aproximadamente 1/40 de segundo.",
+    "mp3_copy_hint": "Tamaño estimado en proporción al archivo original.",
+    "audio_only": "Archivo solo de audio",
     "cut_mode": "Modo de corte:",
     "mode_precise": "Preciso (recodificación)",
     "mode_fast": "Rápido (sin recodificar)",
@@ -595,24 +615,24 @@ ES = {
     "sc_mouse_hint": "Con el ratón: arrastra los tiradores blancos para ajustar inicio y fin, arrastra el "
                      "cuerpo de una selección para moverla, haz clic en una zona vacía para mover la "
                      "reproducción y doble clic en una zona vacía para crear una nueva selección.",
-    "about_text": "<b>{app}</b> {version}<br><br>Corte de archivos de vídeo con selecciones múltiples.<br><br>"
+    "about_text": "<b>{app}</b> {version}<br><br>Corte de archivos de vídeo y audio con selecciones múltiples.<br><br>"
                   "Interfaz: Qt / PySide6 {qt} (LGPL).<br>"
                   "Procesamiento de vídeo: FFmpeg (GPL), incluido en el paquete.",
 }
 
 DE = {
     "menu_file": "&Datei",
-    "act_open": "Video öffnen…",
+    "act_open": "Datei öffnen…",
     "act_export": "Schneiden und exportieren…",
     "act_quit": "Beenden",
     "menu_language": "&Sprache",
     "menu_help": "&Hilfe",
     "act_shortcuts": "Tastenkürzel",
     "act_about": "Über {app}",
-    "filter_video": "Videodateien",
+    "filter_video": "Video- und Audiodateien",
     "filter_all": "Alle Dateien",
-    "drop_hint": "Videodatei hierher ziehen\noder",
-    "btn_open": "Video öffnen…",
+    "drop_hint": "Video- oder Audiodatei hierher ziehen\noder",
+    "btn_open": "Datei öffnen…",
     "tip_back5": "5 Sekunden zurück (←)",
     "tip_fwd5": "5 Sekunden vor (→)",
     "tip_prev_frame": "Vorheriges Bild (Umschalt+← oder ,)",
@@ -652,7 +672,7 @@ DE = {
                      "In der portablen Version befindet sich FFmpeg im Anwendungsordner: "
                      "Prüfen Sie, ob die ZIP-Datei vollständig entpackt wurde.",
     "err_no_ffmpeg_short": "FFmpeg nicht gefunden",
-    "err_no_video": "Die Datei enthält keine Videospur.",
+    "err_no_video": "Die Datei enthält weder Video noch Ton.",
     "err_no_duration": "Die Dauer der Datei kann nicht ermittelt werden.",
     "err_probe_timeout": "Die Analyse der Datei hat zu lange gedauert.",
     "err_open": "Die Datei kann nicht geöffnet werden:\n{error}",
@@ -680,6 +700,11 @@ DE = {
     "fmt_mp4": "MP4 – Video und Ton",
     "fmt_mp3": "MP3 – nur Ton",
     "mp3_no_audio": "Die Datei enthält keinen Ton.",
+    "mp4_no_video": "Die Datei enthält kein Video: Nur der MP3-Export ist verfügbar.",
+    "mp3_copy": "Ohne Neukodierung (Originalqualität)",
+    "mp3_copy_tip": "Der MP3-Ton wird unverändert kopiert: kein Qualitätsverlust, Schnitt auf etwa 1/40 Sekunde genau.",
+    "mp3_copy_hint": "Geschätzte Größe im Verhältnis zur Originaldatei.",
+    "audio_only": "Reine Audiodatei",
     "cut_mode": "Schnittmodus:",
     "mode_precise": "Präzise (neu kodieren)",
     "mode_fast": "Schnell (ohne Neukodierung)",
@@ -744,7 +769,7 @@ DE = {
                      "den Körper einer Auswahl, um sie zu verschieben, klicken Sie auf eine leere Stelle, um "
                      "die Wiedergabeposition zu ändern, und doppelklicken Sie auf eine leere Stelle für eine "
                      "neue Auswahl.",
-    "about_text": "<b>{app}</b> {version}<br><br>Videoschnitt mit mehreren Auswahlen.<br><br>"
+    "about_text": "<b>{app}</b> {version}<br><br>Video- und Audioschnitt mit mehreren Auswahlen.<br><br>"
                   "Oberfläche: Qt / PySide6 {qt} (LGPL).<br>"
                   "Videoverarbeitung: FFmpeg (GPL), im Paket enthalten.",
 }

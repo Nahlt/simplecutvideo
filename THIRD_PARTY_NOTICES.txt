@@ -2,10 +2,12 @@ SimpleCutVideo - componenti di terze parti / third-party components
 ===================================================================
 
 FFmpeg (cartella "ffmpeg")
-  Build Windows GPL "shared" distribuita da https://github.com/BtbN/FFmpeg-Builds
+  Build GPL distribuite da https://github.com/BtbN/FFmpeg-Builds:
+  Windows "win64-gpl-shared", Linux "linux64-gpl" (statica).
+  Versione esatta: vedi ffmpeg/SOURCE.txt.
   Licenza: GNU General Public License v3 (vedi ffmpeg/LICENSE.txt).
   Codice sorgente: https://ffmpeg.org/download.html e https://github.com/BtbN/FFmpeg-Builds
-  FFmpeg è usato come programma esterno (ffmpeg.exe / ffprobe.exe).
+  FFmpeg è usato come programma esterno (ffmpeg / ffprobe).
 
 Qt 6 / PySide6 (cartella "_internal")
   https://www.qt.io - https://doc.qt.io/qtforpython/
@@ -18,3 +20,6 @@ Python
 
 PyInstaller (bootloader)
   https://pyinstaller.org - GPL 2.0 con eccezione per il bootloader.
+
+AppImage runtime e appimagetool (solo versione Linux)
+  https://appimage.org - Licenza MIT.
